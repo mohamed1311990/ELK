@@ -1,0 +1,55 @@
+version: '2.2'
+services:
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.2
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=parent-cluster
+      - cluster.initial_master_nodes=elasticsearch
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elasticsearch_data:/usr/share/elasticsearch/data
+      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./certs/ca/ca.crt:/usr/share/elasticsearch/config/certificates/ca/ca.crt
+      - ./certs/elasticsearch/elasticsearch.crt:/usr/share/elasticsearch/config/certificates/elasticsearch/elasticsearch.crt
+      - ./certs/elasticsearch/elasticsearch.key:/usr/share/elasticsearch/config/certificates/elasticsearch/elasticsearch.key
+
+    ports:
+      - 9200:9200
+    networks:
+      - elastic
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.2
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: https://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["https://elasticsearch:9200"]'
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: qoM8TwXdyo43UalXHvWT
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: /usr/share/kibana/config/certificates/ca/ca.crt
+      SERVER_SSL_ENABLED: "true"
+      SERVER_SSL_KEY: /usr/share/kibana/config/certificates/kibana/kibana.key
+      SERVER_SSL_CERTIFICATE: /usr/share/kibana/config/certificates/kibana/kibana.crt
+
+
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+      - ./certs/kibana/kibana.key:/usr/share/kibana/config/certificates/kibana/kibana.key
+      - ./certs/kibana/kibana.crt:/usr/share/kibana/config/certificates/kibana/kibana.crt
+      - ./certs/ca/ca.crt:/usr/share/kibana/config/certificates/ca/ca.crt
+    networks:
+      - elastic
+
+networks:
+  elastic:
+    driver: bridge
